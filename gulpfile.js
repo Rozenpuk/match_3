@@ -17,7 +17,7 @@ function compile(watch) {
       .pipe(source('build.js'))
       .pipe(buffer())
       .pipe(sourcemaps.init({ loadMaps: true }))
-      .pipe(uglify())
+      // .pipe(uglify())
       .pipe(sourcemaps.write('./'))
       .pipe(gulp.dest('./build'));
   }
@@ -46,7 +46,7 @@ gulp.task('assets', function()
 gulp.task('index', ['assets'], function()
 {
     return gulp.src(['./src/index.html',
-                     './src/phaser/v2/build/phaser.js'])
+                     './src/phaser.js'])
         .pipe(plumber())
         .pipe(gulp.dest('./build'));
 });

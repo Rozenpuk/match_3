@@ -3,11 +3,14 @@ var canPick;
 var gameArray = [];
 var swapSpeed = 200;
 var destroySpeed = 500;
-var fallSpeed = 1000;
+var fallSpeed = 500;
 var tileGroup;
 var selectedTile;
 var score = 0;
 var scoreText;
+var removeMap;
+
+var holes = [];
 
 var gameOptions = {
 	gameWidth: 640,
@@ -20,10 +23,12 @@ var gameOptions = {
 		rows: 8,
 	  cols: 8
 	},
-  colors: [0x3ac38d, 0x3997b3, 0xd93e44	, 0xffb752]
+  colors: [0x3ac38d, 0x3997b3, 0xd93e44	, 0xffb752, 0x444444]
 }
 
-var Phaser = require('./phaser/v2/build/phaser');
+// var Phaser = require('./phaser');
+
+var test = require('./test')
 
 window.onload = function() {
 
@@ -48,6 +53,12 @@ TheGame.prototype = {
 	}
 }
 
+// test.drawField();
+
+// window.onload = test.initial();
+
+
+
 function drawField(){
 
 	tileGroup = game.add.group();
@@ -65,20 +76,26 @@ function drawField(){
 					tile.scale.setTo(gameOptions.tileSize/100)
 					gameArray[i][j] = {
 						tileColor: randomColor,
-						tileSprite: tile
+						tileSprite: tile,
+						x: j,
+						y: i
 					}
 				} while(isMatch(i, j));
+				// console.log(gameArray[i][j]);
 			}
 		}
 		selectedTile = null;
 }
+
+
 
 function tileSelect(e){
 	if(canPick){
 		var row = Math.floor(e.clientY / gameOptions.tileSize);
 		var col = Math.floor(e.clientX / gameOptions.tileSize);
     var pickedTile = gemAt(row, col)
-    if(pickedTile != -1){
+		// console.log(pickedTile, gameOptions.colors.length);
+    if(pickedTile != -1 && pickedTile.tileColor != gameOptions.colors.length - 1){
 			if(selectedTile == null){
 				pickedTile.tileSprite.scale.setTo(gameOptions.tileSize/100*1.1);
 				pickedTile.tileSprite.bringToTop();
@@ -111,7 +128,6 @@ function tileMove(event, pX, pY){
 	if(event.id == 0){
       var distX = pX - selectedTile.tileSprite.x;
       var distY = pY - selectedTile.tileSprite.y;
-			// console.log(pX, pY, distX, distY);
       var deltaRow = 0;
       var deltaCol = 0;
       if(Math.abs(distX) > gameOptions.tileSize / 2){
@@ -148,6 +164,7 @@ function tileDeselect(e){
 }
 
 function swapTiles(tile1, tile2, swapBack){
+	if(tile2.tileColor != gameOptions.colors.length - 1) {
 	canPick = false;
   var fromColor = tile1.tileColor;
   var fromSprite = tile1.tileSprite;
@@ -180,6 +197,7 @@ function swapTiles(tile1, tile2, swapBack){
 		}
 	});
 }
+}
 
 function isHorizontalMatch(row, col){
   return gemAt(row, col).tileColor == gemAt(row, col - 1).tileColor && gemAt(row, col).tileColor == gemAt(row, col - 2).tileColor;
@@ -209,8 +227,6 @@ function areNext(tile1, tile2){
 }
 
 function getTileRow(tile){
-	// console.log(tile.tileSprite.y);
-	// console.log(Math.floor(tile.tileSprite.y / gameOptions.tileSize));
   return Math.floor(tile.tileSprite.y / gameOptions.tileSize);
 }
 
@@ -237,6 +253,7 @@ function handleMatches(){
 			removeMap[i].push(0);
 		}
 	}
+	// console.log(removeMap);
 	VerticalMatches();
   HorizontalMatches();
   destroyTiles();
@@ -307,6 +324,9 @@ function destroyTiles(){
 						replenishField();
 					}
 				});
+				// console.log(gameArray[i][j].x, gameArray[i][j].y);
+				// for(var k = 0; )
+				// holes
 				gameArray[i][j] = null;
 				scoreText.text = 'score: ' + score;
 			}
@@ -319,12 +339,17 @@ function TilesFall(){
   var restart = false;
   for(var i = gameOptions.fieldSize.rows - 2; i >= 0; i--){
 		for(var j = 0; j < gameOptions.fieldSize.cols; j++){
+			// console.log(gameArray[i][j]);
 			if(gameArray[i][j] != null){
+				if(gameArray[i][j].tileColor == gameOptions.colors.length - 1) {
+					console.log(true);
+				}
 				var fallTiles = holesBelow(i, j);
 				if(fallTiles > 0){
+					// console.log(fallTiles);
 					var tile2Tween = game.add.tween(gameArray[i][j].tileSprite).to({
 						y: gameArray[i][j].tileSprite.y + fallTiles * gameOptions.tileSize
-					}, fallSpeed, Phaser.Easing.Linear.None, true);
+					}, fallSpeed*fallTiles, Phaser.Easing.Linear.None, true);
 					fallen ++;
 					tile2Tween.onComplete.add(function(){
 						fallen --;
@@ -348,10 +373,21 @@ function TilesFall(){
 	}
 }
 
+// gameArray[i][j].tileColor != gameOptions.colors.length - 1
+
+
+
 function holesBelow(row, col){
 	var result = 0;
 	for(var i = row + 1; i < gameOptions.fieldSize.rows; i++){
+		// console.log(gameArray[i][col].x);
 		if(gameArray[i][col] == null){
+			// hole = gameArray[i][col];
+			// for(var j = hole.y - 1; j >= 0; j--) {
+			// 	if(gameArray[j][col].tileColor == gameOptions.colors.length - 1) {
+			// 		result ++;
+			// 	}
+			// }
 			result ++;
 		}
 	}
@@ -369,7 +405,7 @@ function replenishField(){
 											            (gameOptions.tileSize * (emptySpots - 1 - i) + gameOptions.tileSize / 2), "tiles");
 				tile.anchor.set(0.5);
 				tileGroup.add(tile);
-				var randomColor = game.rnd.between(0, gameOptions.colors.length - 1);
+				var randomColor = game.rnd.between(0, gameOptions.colors.length - 2);
 				tile.tint = gameOptions.colors[randomColor];
 				tile.scale.setTo(gameOptions.tileSize/100)
 				gameArray[i][j] = {
@@ -378,10 +414,21 @@ function replenishField(){
 				}
 				var tile2Tween = game.add.tween(gameArray[i][j].tileSprite).to({
 					y: gameOptions.tileSize * i + gameOptions.tileSize / 2
-				}, fallSpeed, Phaser.Easing.Linear.None, true);
+				}, fallSpeed*emptySpots, Phaser.Easing.Linear.None, true);
 				replenished ++;
 				tile2Tween.onComplete.add(function(){
 					replenished --;
+					for(k = 0; k < gameOptions.fieldSize.rows; k++) {
+						for(l = 0; l < gameOptions.fieldSize.cols; l++) {
+							console.log(gameArray[k][l]);
+							if(gameArray[k][l] == null) {
+								var tile2Tween2 = game.add.tween(gameArray[k-1][l].tileSprite).to({
+									y: gameOptions.tileSize * (k - 1) + gameOptions.tileSize / 2
+								}, fallSpeed*emptySpots, Phaser.Easing.Linear.None, true);
+								// gameArray[k][l-1]
+							}
+						}
+					}
 					if(replenished == 0){
 						if(restart){
 							TilesFall();
@@ -415,3 +462,5 @@ function holesInCol(col){
 function scoreCount(streak) {
 	score += streak*50
 }
+
+module.exports.game = game;
